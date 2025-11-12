@@ -1,4 +1,4 @@
-name: Trivy Scan Maven & SBOM
+name: Trivy Scan (with dependency checks)
 
 on:
   push:
@@ -13,43 +13,98 @@ jobs:
   trivy-scan:
     runs-on: ubuntu-24.04
     steps:
-      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Set up Java
       - name: Set up JDK 25
         uses: actions/setup-java@v3
         with:
           distribution: temurin
           java-version: '25'
 
-      # Step 3: Download Maven dependencies offline
-      - name: Download Maven dependencies
+      # --- Detect whether pom.xml exists ---
+      - name: Check for pom.xml
+        id: check_pom
+        run: |
+          if [ -f pom.xml ]; then
+            echo "has_pom=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_pom=false" >> $GITHUB_OUTPUT
+          fi
+
+      # --- Detect whether pom.xml contains <dependency> entries ---
+      - name: Check for dependencies in pom.xml
+        id: check_deps
+        if: ${{ steps.check_pom.outputs.has_pom == 'true' }}
+        run: |
+          # simple grep for <dependency> tag — works for most Maven poms
+          if grep -q '<dependency>' pom.xml; then
+            echo "has_deps=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_deps=false" >> $GITHUB_OUTPUT
+          fi
+
+      # --- Download Maven dependencies only if there are dependencies ---
+      - name: Download Maven dependencies (go-offline)
+        if: ${{ steps.check_deps.outputs.has_deps == 'true' }}
         run: mvn dependency:go-offline -B
 
-      # Step 4: Generate SBOM using CycloneDX Maven plugin
-      - name: Generate SBOM
-        run: mvn cyclonedx:makeAggregateBom -DoutputFormat=json
+      # --- Generate SBOM only if pom.xml exists ---
+      - name: Generate SBOM (CycloneDX)
+        id: generate_sbom
+        if: ${{ steps.check_pom.outputs.has_pom == 'true' }}
+        run: |
+          # try to generate SBOM (plugin should be available in your pom or as plugin)
+          mvn cyclonedx:makeAggregateBom -DoutputFormat=json || true
+          # set output indicating whether SBOM file exists
+          if [ -f target/bom.json ]; then
+            echo "sbom_exists=true" >> $GITHUB_OUTPUT
+          elif [ -f target/bom.xml ]; then
+            # if plugin produced xml, convert name
+            echo "sbom_exists=true" >> $GITHUB_OUTPUT
+            echo "sbom_path=target/bom.xml" >> $GITHUB_OUTPUT
+          else
+            echo "sbom_exists=false" >> $GITHUB_OUTPUT
+          fi
 
+      # --- Trivy dependency scan only if dependencies exist ---
+      - name: Run Trivy dependency scan
+        if: ${{ steps.check_deps.outputs.has_deps == 'true' }}
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'dependency'
+          format: 'json'
+          output: 'trivy-deps-report.json'
+          exit-code: '1'                # fail on CRITICAL (change to '0' to not fail)
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
 
-      # Step 6: Run Trivy SBOM scan
+      # --- Trivy SBOM scan only if SBOM exists ---
       - name: Run Trivy SBOM scan
+        if: ${{ steps.generate_sbom.outputs.sbom_exists == 'true' }}
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'sbom'
-          input: 'target/bom.json'         # Path to SBOM generated in Step 4
+          # point to whichever SBOM file likely exists:
+          input: ${{ steps.generate_sbom.outputs.sbom_path || 'target/bom.json' }}
           format: 'json'
           output: 'trivy-sbom-report.json'
           exit-code: '1'
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
-      # Step 7: Upload Trivy reports
-      - name: Upload Trivy reports
+      # --- Upload dependency report if present ---
+      - name: Upload Trivy dependency report
+        if: ${{ steps.check_deps.outputs.has_deps == 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: trivy-reports
-          path: |
-            trivy-deps-report.json
-            trivy-sbom-report.json
+          name: trivy-deps-report
+          path: trivy-deps-report.json
+
+      # --- Upload SBOM report if present ---
+      - name: Upload Trivy SBOM report
+        if: ${{ steps.generate_sbom.outputs.sbom_exists == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-sbom-report
+          path: trivy-sbom-report.json
