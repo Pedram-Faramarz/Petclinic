@@ -16,7 +16,8 @@
   <name>petclinic</name>
 
   <properties>
-
+    
+    <sonar.organization>pedram-faramarz-1</sonar.organization>
     <!-- Generic properties -->
     <java.version>25</java.version>
     <maven.compiler.release>17</maven.compiler.release>
