@@ -30,14 +30,14 @@ jobs:
 
       # Step 4: Run Trivy library scan (for Maven dependencies)
       - name: Run Trivy library scan
-        uses: aquasecurity/trivy-action@v0.33.1
+        uses: aquasecurity/trivy-action@master   # use master to avoid version issues
         with:
-          scan-type: 'library'           # Scan Maven dependencies
+          scan-type: 'library'
           format: 'json'
           output: 'trivy-report.json'
-          exit-code: '1'                 # Fail workflow on vulnerabilities
+          exit-code: '1'                 # Fail workflow on CRITICAL vulnerabilities
           vuln-type: 'library'
-          severity: 'CRITICAL,HIGH'      # Only CRITICAL & HIGH
+          severity: 'CRITICAL,HIGH'
 
       # Step 5: Upload Trivy report artifact
       - name: Upload Trivy report
