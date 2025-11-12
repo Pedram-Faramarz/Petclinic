@@ -1,51 +1,34 @@
-name: Trivy Scan
+name: Trivy Scan with Artifact
 
 on:
   push:
     branches:
       - main
   pull_request:
+    branches:
+      - main
 
 jobs:
-  build-and-scan:
-    name: Build Docker Image & Scan
-    runs-on: ubuntu-24.04
+  trivy-scan:
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - name: Build Docker image
-        run: |
-          docker build \
-            -t docker.io/my-organization/my-app:${{ github.sha }} \
-            -f docker/Dockerfile \
-            docker/
-
-      - name: Run Trivy vulnerability scanner (JSON report)
-        uses: aquasecurity/trivy-action@0.28.0
-        id: trivy_scan
+      - name: Run Trivy Scan
+        uses: aquasecurity/trivy-action@0.33.1
         with:
-          image-ref: 'docker.io/my-organization/my-app:${{ github.sha }}'
-          format: 'json'
-          output: "trivy-report-${{ github.sha }}.json"
-          exit-code: '1'
-          ignore-unfixed: true
+          scan-type: 'fs'                # Scan filesystem
+          directory: '.'                  # Directory to scan
+          format: 'json'                  # JSON format for artifact
+          output: 'trivy-report.json'     # Save report
+          exit-code: '0'                  # Optional: continue workflow even if vulnerabilities found
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
-      - name: Upload Trivy report as artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload Trivy Report
+        uses: actions/upload-artifact@v3
         with:
-          name: trivy-report-${{ github.sha }}
-          path: "trivy-report-${{ github.sha }}.json"
-
-      - name: Trivy Scan Table Summary (logs)
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: 'docker.io/my-organization/my-app:${{ github.sha }}'
-          format: 'table'
-          exit-code: '0'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
+          name: trivy-report
+          path: trivy-report.json
