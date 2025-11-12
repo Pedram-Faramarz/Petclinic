@@ -2,7 +2,7 @@ name: OWASP Dependency-Check
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
 
 jobs:
@@ -10,24 +10,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout your repository
-      - name: Checkout code
+      # 1️⃣ Checkout your code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Run Dependency-Check
+      # 2️⃣ Run OWASP Dependency-Check
       - name: Run Dependency-Check
         uses: dependency-check/DependencyCheck_Action@main
         id: depcheck
         with:
-          project: 'MyProject'          # Project name
-          path: '.'                     # Path to scan
-          format: 'HTML,XML,JSON'       # Generate multiple formats
-          out: 'dependency-check-reports' # Output folder
-          args: '--failOnCVSS 7'        # Optional: fail build if CVSS ≥ 7
+          project: 'MyProject'
+          path: '.'
+          out: 'dependency-check-reports'
+          args: >
+            -f HTML
+            -f XML
+            -f JSON
+            --failOnCVSS 7
+            --noupdate
 
-      # 3️⃣ Upload the report as artifact
-      - name: Upload Dependency-Check Report
+      # 3️⃣ Upload the generated reports
+      - name: Upload Dependency-Check Reports
         uses: actions/upload-artifact@v4
         with:
-          name: dependency-check-report
+          name: dependency-check-reports
           path: dependency-check-reports
