@@ -1,4 +1,4 @@
-name: Trivy Scan Maven
+name: Trivy Scan Maven & SBOM
 
 on:
   push:
@@ -28,20 +28,28 @@ jobs:
       - name: Download Maven dependencies
         run: mvn dependency:go-offline -B
 
-      # Step 4: Run Trivy dependency scan
-      - name: Run Trivy dependency scan
-        uses: aquasecurity/trivy-action@master   # use master to avoid version resolution issues
+      # Step 4: Generate SBOM using CycloneDX Maven plugin
+      - name: Generate SBOM
+        run: mvn cyclonedx:makeAggregateBom -DoutputFormat=json
+
+
+      # Step 6: Run Trivy SBOM scan
+      - name: Run Trivy SBOM scan
+        uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'dependency'       # Correct scan type for Maven dependencies
+          scan-type: 'sbom'
+          input: 'target/bom.json'         # Path to SBOM generated in Step 4
           format: 'json'
-          output: 'trivy-report.json'
-          exit-code: '1'                # Fail workflow on CRITICAL vulnerabilities
-          vuln-type: 'os,library'       # Check both OS and library vulnerabilities
+          output: 'trivy-sbom-report.json'
+          exit-code: '1'
+          vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
-      # Step 5: Upload Trivy report artifact
-      - name: Upload Trivy report
+      # Step 7: Upload Trivy reports
+      - name: Upload Trivy reports
         uses: actions/upload-artifact@v4
         with:
-          name: trivy-report
-          path: trivy-report.json
+          name: trivy-reports
+          path: |
+            trivy-deps-report.json
+            trivy-sbom-report.json
