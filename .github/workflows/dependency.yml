@@ -27,7 +27,7 @@ jobs:
 
       # 3️⃣ Upload the report as artifact
       - name: Upload Dependency-Check Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
           path: dependency-check-reports
