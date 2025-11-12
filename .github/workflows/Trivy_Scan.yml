@@ -7,13 +7,13 @@ on:
   pull_request:
 
 permissions:
-  contents: read  # required to fetch action
+  contents: read
 
 jobs:
   trivy-scan:
     runs-on: ubuntu-24.04
     steps:
-      # Step 1: Checkout the repository
+      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -28,15 +28,15 @@ jobs:
       - name: Download Maven dependencies
         run: mvn dependency:go-offline -B
 
-      # Step 4: Run Trivy library scan (for Maven dependencies)
-      - name: Run Trivy library scan
-        uses: aquasecurity/trivy-action@master   # use master to avoid version issues
+      # Step 4: Run Trivy dependency scan
+      - name: Run Trivy dependency scan
+        uses: aquasecurity/trivy-action@master   # use master to avoid version resolution issues
         with:
-          scan-type: 'library'
+          scan-type: 'dependency'       # Correct scan type for Maven dependencies
           format: 'json'
           output: 'trivy-report.json'
-          exit-code: '1'                 # Fail workflow on CRITICAL vulnerabilities
-          vuln-type: 'library'
+          exit-code: '1'                # Fail workflow on CRITICAL vulnerabilities
+          vuln-type: 'os,library'       # Check both OS and library vulnerabilities
           severity: 'CRITICAL,HIGH'
 
       # Step 5: Upload Trivy report artifact
