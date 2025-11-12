@@ -29,7 +29,7 @@ jobs:
       - name: Run Trivy library scan
         uses: aquasecurity/trivy-action@0.28.0
         with:
-          scan-type: 'library'           # Scan project dependencies
+          scan-type: 'repository'           # Scan project dependencies
           format: 'json'                 # Save report as JSON
           output: 'trivy-report.json'
           exit-code: '0'                 # Continue workflow even if vulnerabilities found
