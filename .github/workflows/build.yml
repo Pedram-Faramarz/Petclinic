@@ -41,8 +41,14 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
           
-      - name: Export Sonar Report
-        run: mvn sonar:sonar -Dsonar.analysis.mode=preview -Dsonar.report.export.path=target/sonar-report.json
+      - name: Export Report
+  run: mvn clean verify sonar:sonar \
+        -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
+        -Dsonar.host.url=https://sonarcloud.io \
+        -Dsonar.projectKey=Pedram-Faramarz_Petclinic \
+        -Dsonar.organization=pedram-faramarz-1 \
+        -Dsonar.report.export.path=target/sonar-report.json
+
 
       - name: Upload Sonar Report
         uses: actions/upload-artifact@v4
