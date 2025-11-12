@@ -25,16 +25,15 @@ jobs:
       - name: Download Maven dependencies
         run: mvn dependency:go-offline -B
 
-      # Step 4: Run Trivy scan on filesystem
-      - name: Run Trivy filesystem scan
+      # Step 4: Run Trivy library scan (for Maven dependencies)
+      - name: Run Trivy library scan
         uses: aquasecurity/trivy-action@0.28.0
         with:
-          scan-type: 'fs'                 # Scan project files
-          directory: '.'                  # Project root
-          format: 'json'                  # Save report as JSON
+          scan-type: 'library'           # Scan project dependencies
+          format: 'json'                 # Save report as JSON
           output: 'trivy-report.json'
-          exit-code: '0'                  # Optional: continue workflow even if vulnerabilities found
-          vuln-type: 'library'            # Check project dependencies
+          exit-code: '0'                 # Continue workflow even if vulnerabilities found
+          vuln-type: 'library'           # Check library vulnerabilities
           severity: 'CRITICAL,HIGH'
 
       # Step 5: Upload Trivy report artifact
