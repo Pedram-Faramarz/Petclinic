@@ -1,29 +1,29 @@
-name: Trivy Scan with Artifact
-
+name: build-trivy
 on:
   push:
     branches:
       - main
   pull_request:
-    branches:
-      - main
 
 jobs:
-  trivy-scan:
-    runs-on: ubuntu-latest
-
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Run Trivy Scan
-        uses: aquasecurity/trivy-action@0.33.1
+      - name: Build an image from Dockerfile
+        run: docker build -t docker.io/my-organization/my-app:${{ github.sha }} .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.28.0
         with:
-          scan-type: 'fs'                # Scan filesystem
-          directory: '.'                  # Directory to scan
-          format: 'json'                  # JSON format for artifact
-          output: 'trivy-report.json'     # Save report
-          exit-code: '0'                  # Optional: continue workflow even if vulnerabilities found
+          image-ref: 'docker.io/my-organization/my-app:${{ github.sha }}'
+          format: 'json'                        # Use JSON to save as artifact
+          output: 'trivy-report.json'           # Save report
+          exit-code: '1'
+          ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
