@@ -1,4 +1,4 @@
-name: Trivy Scan
+name: Trivy Scan Maven
 
 on:
   push:
@@ -10,21 +10,35 @@ jobs:
   trivy-scan:
     runs-on: ubuntu-24.04
     steps:
+      # Step 1: Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Step 2: Set up Java
+      - name: Set up JDK 25
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      # Step 3: Download Maven dependencies offline
+      - name: Download Maven dependencies
+        run: mvn dependency:go-offline -B
+
+      # Step 4: Run Trivy scan on filesystem
       - name: Run Trivy filesystem scan
         uses: aquasecurity/trivy-action@0.28.0
         with:
-          scan-type: 'fs'                 # Scan filesystem instead of Docker image
-          directory: '.'                  # Project directory to scan
-          format: 'json'                  # Save JSON report
+          scan-type: 'fs'                 # Scan project files
+          directory: '.'                  # Project root
+          format: 'json'                  # Save report as JSON
           output: 'trivy-report.json'
-          exit-code: '0'                  # Optional: continue even if vulnerabilities are found
-          vuln-type: 'os,library'
+          exit-code: '0'                  # Optional: continue workflow even if vulnerabilities found
+          vuln-type: 'library'            # Check project dependencies
           severity: 'CRITICAL,HIGH'
 
-      - name: Upload Trivy report artifact
+      # Step 5: Upload Trivy report artifact
+      - name: Upload Trivy report
         uses: actions/upload-artifact@v4
         with:
           name: trivy-report
