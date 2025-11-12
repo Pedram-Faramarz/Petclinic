@@ -31,7 +31,6 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-
       - name: Build project with Maven
         run: mvn -B clean verify
 
@@ -40,18 +39,3 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
-          
-      - name: Export Report
-  run: mvn clean verify sonar:sonar \
-        -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
-        -Dsonar.host.url=https://sonarcloud.io \
-        -Dsonar.projectKey=Pedram-Faramarz_Petclinic \
-        -Dsonar.organization=pedram-faramarz-1 \
-        -Dsonar.report.export.path=target/sonar-report.json
-
-
-      - name: Upload Sonar Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: sonar-report
-          path: target/sonar-report.json
